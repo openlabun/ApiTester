@@ -28,4 +28,4 @@ npm run dev
 npm run build
 ```
 
-### Leer Authors.txt dentro de src
+### Read Authors.txt inside src folder
