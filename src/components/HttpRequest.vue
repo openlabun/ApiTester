@@ -1,95 +1,131 @@
 <template>
-  <div class="card text-center m-3">
-    <v-responsive class="mx-auto" max-width="344">
-      <!-- Select para los métodos -->
-      <select v-model="selectedMethod">
-        <option value="GET">GET</option>
-        <option value="PUT">PUT</option>
-        <option value="POST">POST</option>
-        <option value="DELETE">DELETE</option>
-      </select>
-      <!-- Input para la URL -->
-      <input :value="url" @input="updateUrl" placeholder="https://example.com" />
-      
-      <!-- Pestañas para Query Params y Request Body -->
-      <div>
-        <button @click="activeTab = 'queryParams'">Query Params</button>
-        <button @click="activeTab = 'requestBody'">Body</button>
+  <div class="p-4">
+    <form @submit.prevent="sendRequest">
+      <div class="input-group mb-4">
+        <select class="form-select flex-grow-0 w-auto" v-model="method">
+          <option value="GET" selected>GET</option>
+          <option value="PUT">PUT</option>
+          <option value="POST">POST</option>
+          <option value="DELETE">DELETE</option>
+        </select>
+        <input v-model="url" required class="form-control" type="url" placeholder="https://example.com"/>
+        <button type="submit" class="btn btn-primary">Send</button>
       </div>
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="query-params-tab" data-bs-toggle="tab" data-bs-target="#query-params"
+          type="button" role="tab" aria-controls="query-params" aria-selected="true">Query Params</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="body-tab" data-bs-toggle="tab" data-bs-target="#body"
+          type="button" role="tab" aria-controls="body" aria-selected="false">Body</button>
+        </li>
+      </ul>
+      <div class="tab-content p-3 border-top-0 border">
+        <div class="tab-pane fade" id="query-params" role="tabpanel" aria-labelledby="query-params-tab">
+          <div class="input-group">
+            <input v-model="queryParams" id="queryParams" class="form-control" placeholder="Enter query parameters (e.g., param1=key1&param2=key2)"/>
+          </div>
+        </div>
 
-      <!-- Contenido de la pestaña activa -->
-      <div v-if="activeTab === 'queryParams'">
-        <!-- Input para los parámetros de consulta -->
-        <input :value="queryParams" @input="updateQueryParams" placeholder="param1=value1&param2=value2" />
+        <div class="tab-pane fade" id="body" role="tabpanel" aria-labelledby="body-tab">
+          <textarea v-model="requestBody" id="requestBody" class="form-control" rows="5" placeholder="Enter request body"></textarea>
+        </div>
       </div>
-      <div v-if="activeTab === 'requestBody'">
-        <!-- Textarea para el cuerpo de la solicitud -->
-        <textarea :value="requestBody" @input="updateRequestBody" placeholder="Request Body"></textarea>
+    </form>
+    <div class="mt-5" :class="{ 'd-none': !isResponseVisible }" data-response-section>
+      <h3>Response</h3>
+      <div class="d-flex my-2">
+        <div class="me-3">
+          Time: <span data-time></span>ms
+        </div>
       </div>
-
-      <!-- Botón para enviar -->
-      <button @click="request" :disabled="isRequesting">Send</button>
-      <!-- Resultado de la solicitud -->
-      <pre v-if="totalVuePackages">Respond: <br>{{ JSON.stringify(totalVuePackages, null, 2) }}</pre>
-      <pre v-else class="placeholder">Respond Body</pre>
-    </v-responsive>
-
+      <div class="tab-content p-3 border-top-0 border">
+        <div class="tab-pane fade show active" id="response-body" role="tabpanel" aria-labelledby="body-tab">
+          <pre ref="jsonResponseBody" class="overflow-auto" style="max-height: 560px;"></pre>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
-
 <script>
 export default {
-  name: "http-request",
   data() {
     return {
-      url: "", // Para almacenar la URL
-      queryParams: "", // Para almacenar los parámetros de consulta
-      requestBody: "", // Para almacenar el cuerpo de la solicitud
-      selectedMethod: "GET", // Para almacenar el método seleccionado
-      totalVuePackages: null,
-      activeTab: "queryParams", // Inicialmente mostrar la pestaña de Query Params
-      isRequesting: false,
+      method: "GET",
+      url: "",
+      isResponseVisible: false,
+      requestBody: "",
+      queryParams: "",
     };
   },
-
-  
   methods: {
-    updateUrl(event) {
-      this.url = event.target.value;
-    },
-    updateQueryParams(event) {
-      this.queryParams = event.target.value;
-    },
-    updateRequestBody(event) {
-      this.requestBody = event.target.value;
-    },
-    request() {
-      this.isRequesting = true;
-      // Construir la URL con los parámetros de consulta solo si los parámetros están vacíos
-      const urlWithParams = this.queryParams ? `${this.url}?${this.queryParams}` : this.url;
-      fetch(urlWithParams, {
-        method: this.selectedMethod,
-        body: this.selectedMethod === "GET" ? undefined : this.requestBody, // No incluir body en solicitudes GET
-      })
+    async sendRequest() {
+      try {
+        const startTime = performance.now();
+        const options = {
+          method: this.method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        };
 
+        if (this.method === 'POST' || this.method === 'PUT' || this.method === 'DELETE') {
+          this.setRequestBody(options);
+        }
 
-      //Manejo de errores
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        const fullUrl = this.buildFullUrl();
+
+        const response = await fetch(fullUrl, options);
+
+        if (!response.ok) {
+          const errorMessage = `La API ${this.url} no admite la función ${this.method}. \nSTATUS: ${response.status}`;
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+
+        const endTime = performance.now();
+        const elapsedTime = endTime - startTime;
+
+        this.showResponseSection();
+        this.updateResponseInfo(elapsedTime);
+        this.$refs.jsonResponseBody.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        console.error('There was an error!', error);
+        this.hideResponseInfo();
+        this.showNotification(`Error: ${error.message}`);
       }
-      return response.json();
-    })
-    .then((data) => (this.totalVuePackages = data))
-    .catch((error) => {
-      console.error("There was an error!", error);
-      // Mostrar mensaje de error al usuario
-      alert("Hubo un error en la solicitud. Por favor, verifica la URL y los parámetros.");
-    })
-        .finally(() => {
-          this.isRequesting = false; // Deshabilitar el indicador de solicitud al finalizar
-        });
+    },
+
+    setRequestBody(options) {
+      options.body = this.requestBody;
+    },
+
+    showResponseSection() {
+      this.isResponseVisible = true;
+    },
+
+    updateResponseInfo(time) {
+      const timeElement = document.querySelector('[data-time]');
+      timeElement.textContent = time.toFixed(2);
+    },
+
+    hideResponseInfo() {
+      this.isResponseVisible = false;
+    },
+
+    buildFullUrl() {
+      let fullUrl = this.url;
+      if (this.method === 'GET' && this.queryParams.trim() !== '') {
+        fullUrl += '?' + encodeURIComponent(this.queryParams.trim());
+      }
+      return fullUrl;
+    },
+
+    showNotification(message) {
+      alert(message);
     },
   },
 };

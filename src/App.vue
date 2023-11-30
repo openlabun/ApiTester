@@ -1,10 +1,8 @@
 <template>
   <div>
-    <h3 class="p-3 text-center">Api Tester</h3>
-    <http-request/>
+    <HttpRequest />
   </div>
 </template>
-
 <script>
 import HttpRequest from './components/HttpRequest.vue'
 
