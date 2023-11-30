@@ -64,34 +64,10 @@ export default {
     async sendRequest() {
       try {
         const startTime = performance.now();
-        const options = {
-          method: this.method,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        };
-
-        if (this.method === 'POST' || this.method === 'PUT' || this.method === 'DELETE') {
-          this.setRequestBody(options);
-        }
-
+        const options = this.buildOptions();
         const fullUrl = this.buildFullUrl();
-
         const response = await fetch(fullUrl, options);
-
-        if (!response.ok) {
-          const errorMessage = `La API ${this.url} no admite la función ${this.method}. \nSTATUS: ${response.status}`;
-          throw new Error(errorMessage);
-        }
-
-        const data = await response.json();
-
-        const endTime = performance.now();
-        const elapsedTime = endTime - startTime;
-
-        this.showResponseSection();
-        this.updateResponseInfo(elapsedTime);
-        this.$refs.jsonResponseBody.textContent = JSON.stringify(data, null, 2);
+        await this.handleResponse(response, startTime);
       } catch (error) {
         console.error('There was an error!', error);
         this.hideResponseInfo();
@@ -99,8 +75,44 @@ export default {
       }
     },
 
+    buildOptions() {
+      const options = {
+        method: this.method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+
+      if (this.method === 'POST' || this.method === 'PUT' || this.method === 'DELETE') {
+        this.setRequestBody(options);
+      }
+
+      return options;
+    },
+
     setRequestBody(options) {
       options.body = this.requestBody;
+    },
+
+    buildFullUrl() {
+      let fullUrl = this.url;
+
+      if (this.method === 'GET' && this.queryParams.trim() !== '') {
+        const params = new URLSearchParams(this.queryParams.trim());
+        fullUrl += '?' + params.toString();
+      }
+
+      return fullUrl;
+    },
+
+    async handleResponse(response, startTime) {
+      const data = await response.json();
+      const endTime = performance.now();
+      const elapsedTime = endTime - startTime;
+
+      this.showResponseSection();
+      this.updateResponseInfo(elapsedTime);
+      this.$refs.jsonResponseBody.textContent = JSON.stringify(data, null, 2);
     },
 
     showResponseSection() {
@@ -114,14 +126,6 @@ export default {
 
     hideResponseInfo() {
       this.isResponseVisible = false;
-    },
-
-    buildFullUrl() {
-      let fullUrl = this.url;
-      if (this.method === 'GET' && this.queryParams.trim() !== '') {
-        fullUrl += '?' + encodeURIComponent(this.queryParams.trim());
-      }
-      return fullUrl;
     },
 
     showNotification(message) {
