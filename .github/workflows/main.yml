@@ -23,10 +23,10 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
-          cd /home/azureuser/ApiTester/
+          cd /home/proyecto/ApiTester/
           git pull origin main
           git status
-          docker stop apptester-app
-          docker rm apptester-app
+          docker stop apitester-app
+          docker rm apitester-app
           docker build -t apitester .
-          docker run -d -it -p 5001:8080 --restart unless-stopped --name apptester-app apitester
+          docker run -d -it -p 5001:8080 --restart unless-stopped --name apitester-app apitester
