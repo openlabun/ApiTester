@@ -1,7 +1,5 @@
 # ApiTester
 
-Node.js CRUD Fetch API with Vue.
-
 This project is a Vue.js application containerized with Docker. The application includes a component which allows users to make HTTP requests with various methods (GET, POST, PUT, DELETE) and view the responses.
 
 After submitting a request, the component displays the response time and the JSON response in a formatted manner. This tool is useful for testing and debugging APIs.
