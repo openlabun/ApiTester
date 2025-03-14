@@ -28,5 +28,5 @@ jobs:
           git status
           docker stop apitester-app
           docker rm apitester-app
-          docker build -t apitester .
-          docker run -d -it -p 5001:8080 --restart unless-stopped --name apitester-app apitester
+          docker build -t apitester-image .
+          docker run -d -it -p 5001:8080 --restart unless-stopped --name apitester apitester-image
