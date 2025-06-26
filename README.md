@@ -4,7 +4,7 @@ This project is a Vue.js application containerized with Docker. The application 
 
 After submitting a request, the component displays the response time and the JSON response in a formatted manner. This tool is useful for testing and debugging APIs.
 
-### Steps
+## Steps for development
 
 1. Clone the repository:
     ```sh
@@ -22,6 +22,14 @@ After submitting a request, the component displays the response time and the JSO
     docker run -p 8080:8080 vue-app
     ```
 
-## Usage
+4. Open your web browser and navigate to `http://localhost:8080` to access the application.
 
-Open your browser and navigate to `http://localhost:8080` to access the application.
+## Development
+
+To start developing, follow these steps:
+
+```sh
+docker build -f Dockerfile.deployment -t apitester-image .
+docker run -d -it -p 5001:80 --restart unless-stopped --name apitester apitester-image
+```
+Access the application in your web browser at `http://localhost:5001`.
